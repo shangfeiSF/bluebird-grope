@@ -1,0 +1,27 @@
+{
+  "name": "bluebird-grope",
+  "version": "1.0.0",
+  "description": "JavaScript, Promise, Async, Callback, CPS, bluebird, demo",
+  "dependencies": {
+    "bluebird": "^3.3.4",
+    "colors": "^0.6.2",
+    "gm": "^1.22.0",
+    "nopt": "^3.0.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:shangfeiSF/bluebird-grope.git"
+  },
+  "keywords": [
+    "JavaScript",
+    "Nodejs",
+    "Promise",
+    "Async",
+    "Callback",
+    "CPS",
+    "bluebird",
+    "demo"
+  ],
+  "author": "shangfeiSF",
+  "license": "ISC"
+}
