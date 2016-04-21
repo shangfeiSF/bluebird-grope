@@ -8,79 +8,85 @@ var colors = require('colors')
 
 var common = require('./00.common')
 
-console.time("START")
-var MAP = {
+var principle = path.join(process.cwd(), 'principle')
+var INDEX = {
   p1: [],
-  p2: []
+  p2: [],
+  p3: []
 }
 
-fs.readdirAsync(process.cwd())
+console.time("START")
+
+fs.readdirAsync(principle)
   .then(function (names) {
-    var files = []
+    return names.map(function (name) {
+      INDEX.p1.push(name)
 
-    for (var index = 0; index < names.length; index++) {
-      MAP.p1.push(names[index])
-
-      files.push({
-        name: names[index],
-        stamp: common.stamp()
-      })
-    }
-
-    return files
+      return {
+        name: name
+      }
+    })
   })
-  .filter(function(file){
-    var filePath = path.join(__dirname, file.name)
+  .filter(function (file) {
+    INDEX.p2.push(file.name)
 
-    var item = fs.statAsync(filePath)
+    return fs.statAsync(path.join(principle, file.name))
       .then(function (stat) {
         return !stat.isDirectory()
       })
-
-    return item
   })
+  /*
+   Promise.mapSeries is like Promise.map in that it returns an array with the results of the iterator function
+   Promise.mapSeries is like Promise.each it waits for each iterator function call to finish before it moves on to the next item in the array
+   Promise.map does not wait for the previous iterator call to finish.
+   */
   .mapSeries(function (file) {
     var name = file.name
-    var stamp = file.stamp
+    INDEX.p3.push(name)
 
-    MAP.p2.push(name)
+    var stat = fs.statAsync(path.join(principle, name))
 
-    var filePath = path.join(__dirname, name)
-
-    var stat = fs.statAsync(filePath)
-
-    var contents = fs.readFileAsync(filePath)
+    var contents = fs.readFileAsync(path.join(principle, name))
 
     return Promise.join(stat, contents, function (stat, contents) {
       return {
         name: name,
-        stamp: stamp,
         stat: stat,
         contents: contents
       }
     })
   })
+  /*
+   * Promise.mapSeries will return a array with the same order of its original
+   * and the actual-deal-order of Promise.mapSeries iterate is also same !
+   * */
   .then(function (files) {
-    console.log('---------------------------------------'.white)
-    for (var index = 0; index < files.length; index++) {
-      var file = files[index]
-      var p1Index = MAP.p1.indexOf(file.name)
-      var p2Index = MAP.p2.indexOf(file.name)
+    console.log('Promise.then original-order:'.green)
+    console.log(JSON.stringify(INDEX.p1, null, 2))
 
-      var log = [[p1Index, p2Index, index].join('---'), [file.name, file.stamp, file.stat.size].join('---')].join(' ==> ')
-      var ckeck = (function (indexs) {
-        var first = indexs[0]
+    console.log('Promise.filter original-order:'.green)
+    console.log(JSON.stringify(INDEX.p2, null, 2))
 
-        return indexs.every(function (i) {
-          return i === first
+    console.log('Promise.mapSeries actual-deal-order:'.green)
+    console.log(JSON.stringify(INDEX.p3, null, 2))
+
+    files.forEach(function (file, index) {
+      var p1 = INDEX.p1.indexOf(file.name)
+      var p2 = INDEX.p2.indexOf(file.name)
+      var p3 = INDEX.p3.indexOf(file.name)
+
+      var ckeck = (function (list) {
+        return list.every(function (i) {
+          return i === list[0]
         })
-      })([p1Index, p2Index, index])
+      })([index, p3, p2, p1])
 
-      log = ckeck ? log.green : log.yellow
+      var msg = [index, p3, p2, p1, file.name, file.stat.size, file.contents.length].join(' --- ')
 
-      console.log(log)
-    }
-    console.log('---------------------------------------'.white)
+      msg = ckeck ? msg.green : msg.yellow
+
+      console.log(msg)
+    })
+
     console.timeEnd("START")
-    console.log('---------------------------------------'.white)
   })
