@@ -72,8 +72,17 @@ fs.readdirAsync(principle)
       })
     })
 
+    /*
+     * Promise.props like .each
+     * Promise.props will sequential traversal the tasks
+     * and rejected once one task is rejected
+     * */
     return Promise.props(tasks)
   })
+  /*
+   * Promise.props unlike .each
+   * Promise.props will return a object including properties whose value is the result of promise
+   * */
   .then(function (files) {
     console.log('isArray?', files instanceof Array)
     console.log('isObject?', files instanceof Object)
@@ -84,5 +93,5 @@ fs.readdirAsync(principle)
       console.log(msg.green)
     }
   }, function (error) {
-    console.log(error)
+    console.log(JSON.stringify(error).red)
   })
