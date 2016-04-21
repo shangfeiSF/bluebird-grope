@@ -4,65 +4,86 @@ var path = require('path')
 var Promise = require('bluebird')
 var fs = Promise.promisifyAll(require("fs"))
 
+var nopt = require('nopt')
 var colors = require('colors')
 
 var common = require('./00.common')
 
-fs.readdirAsync(process.cwd())
+var principle = path.join(process.cwd(), 'principle')
+var options = nopt({
+  rejected: Array
+}, {
+  'r': ['--rejected'],
+  'r1': ['--rejected', '0', '--rejected', '1'],
+  'r2': ['--rejected', '0', '--rejected', '1', '--rejected', '2'],
+}, process.argv, 2)
+
+fs.readdirAsync(principle)
   .then(function (names) {
-    var files = []
-
-    for (var index = 0; index < names.length; index++) {
-      files.push({
-        name: names[index],
+    return names.map(function (name, index) {
+      return {
+        index: index,
+        name: name,
         stamp: common.stamp()
-      })
-    }
-
-    return files
+      }
+    })
   })
   .filter(function (file) {
-    var filePath = path.join(__dirname, file.name)
-
-    var item = fs.statAsync(filePath)
+    return fs.statAsync(path.join(principle, file.name))
       .then(function (stat) {
         return !stat.isDirectory()
       })
-
-    return item
   })
-  .map(function (file) {
-    var filePath = path.join(__dirname, file.name)
+  .map(function (file, index) {
+    // rejected when options.rejected is config
+    var info
+    if (options.rejected && options.rejected.indexOf(String(index)) > -1) {
+      /* Promise.reject */
+      info = Promise.reject({
+        reason: "Force to reject " + index
+      })
+    } else {
+      /* Promise.resolve */
+      info = Promise.resolve({
+        task: index,
+        index: file.index,
+        name: file.name,
+        stamp: file.stamp
+      })
+    }
 
-    var info = Promise.resolve({
-      name: file.name,
-      stamp: file.stamp,
-    })
+    var stat = fs.statAsync(path.join(principle, file.name))
 
-    var stat = fs.statAsync(filePath)
-
-    var contents = fs.readFileAsync(filePath)
+    var contents = fs.readFileAsync(path.join(principle, file.name))
 
     return Promise.join(info, stat, contents, function (info, stat, contents) {
-      var log = [info.index, '---', info.name, '---', info.stamp, '---', contents.length, '---', stat.size].join(' ')
-      console.log((log).yellow)
+      var msg = [info.task, info.index, file.name, file.stamp, stat.size, contents.length].join(' --- ')
+      console.log(msg.yellow)
 
       return {
-        original: file,
-        extention: {
-          size: stat.size,
-          length: contents.length
-        }
+        task: info.task,
+        index: info.index,
+        name: info.name,
+        stamp: info.stamp,
+        stat: stat,
+        contents: contents
       }
     })
   })
   .reduce(function (census, task, index, length) {
-    task.extention.squence = index + '/' + length
+    task.task = task.task + '/' + length
     census.push(task)
     return census
-  }, [])
+  }, []) // Promise.reduce has a second argument(the initial value of census)
+  /*
+   * Promise.reduce unlike .each
+   * Promise.reduce will return census result but the original
+   * */
   .then(function (census) {
-    console.log('-----------------------------------'.white)
-    console.log(census)
-    console.log('-----------------------------------'.white)
+    census.forEach(function (item, index) {
+      var msg = [index, item.task, item.index, item.name, item.stamp, item.stat.size, item.contents.length].join(' --- ')
+      console.log(msg.green)
+    })
+  }, function (error) {
+    console.log(JSON.stringify(error).red)
   })

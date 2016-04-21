@@ -81,5 +81,5 @@ fs.readdirAsync(principle)
       console.log(JSON.stringify(file, null, 2).green)
     })
   }, function (error) {
-    console.log(error)
+    console.log(JSON.stringify(error).red)
   })
