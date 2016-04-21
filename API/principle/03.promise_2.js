@@ -11,9 +11,9 @@ function Promise(asyncFn) {
 
   function resolve(value) {
     /*
-     Need Fix Important：
-     只是基于第一次的异步返回结果离散处理 value
-     不是PromiseA+规范中连续then的需求
+     * Need Fix Important：
+     * the value is just the first result of async action, means all of the callbacks in deferreds will get the same value
+     * but callback need get the result returned by its nearest async action before(see details in Promise/A+ criterion)
      */
     setTimeout(function () {
       deferreds.forEach(function (deferred) {
@@ -29,7 +29,7 @@ function begin() {
   var promise = new Promise(function (resolve) {
     if (options.async) {
       console.log('Async....')
-      /* 异步代码 */
+      /* async code */
       setTimeout(function () {
         resolve(2016)
       }, 2000)
@@ -53,33 +53,34 @@ var options = nopt({
   'd5': ['--delay', '5000']
 }, process.argv, 2)
 
-/* begin()后立即执行 then 可以注册回调到 deferreds */
 var step_1 = begin()
+  /* this callback can be registered into deferreds */
   .then(function (res) {
     console.log('[Response #1] --- ' + res)
   })
+  /* this callback also can be registered into deferreds */
   .then(function (res) {
     console.log('[Response #2] --- ' + res)
   })
 
 setTimeout(function () {
   /*
-   Need Fix 2：
-   5000ms 后再次执行 then 虽然可以注册回调到 deferreds
-   但是在 2000ms 时已经执行 deferreds 遍历执行
-   之后的动作只是注册，但是不会被执行
-   同步代码更是无法执行到后续的动作
-   */
+  * Need Fix 2：
+  * try to register another callback into deferreds after 3000ms(line 77)
+  * actually this callback is just registered into deferreds
+  * but iterating the deferreds has been occured 2000ms(line 35)
+  * so this callback will not be executed by default
+  * */
   step_1.then(function (res) {
     console.log('[Response #3] --- ' + res)
   })
-}, options.delay ? options.delay : 1000)
+}, options.delay ? options.delay : 3000)
 
 // 03.promise_2.js -s
-// 03.promise_2.js -s -d1000
-// 03.promise_2.js -s -d5000
+// 03.promise_2.js -s -d1
+// 03.promise_2.js -s -d5
 
 // 03.promise_2.js -a
-// 03.promise_2.js -a -d1000
-// 03.promise_2.js -a -d5000
+// 03.promise_2.js -a -d1
+// 03.promise_2.js -a -d5
 

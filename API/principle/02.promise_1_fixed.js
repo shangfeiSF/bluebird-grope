@@ -2,21 +2,21 @@
 var nopt = require('nopt')
 
 function Promise(asyncFn) {
-  /* deferreds 是延迟执行的队列 */
+  /* deferreds will store the callbacks which registered with then() */
   var deferreds = []
 
-  /* then 是将异步执行成功后的回调注册到 deferreds */
+  /* using then() to register the callback into the promise (actually into the deferreds) */
   this.then = function (onFulfilled) {
     deferreds.push(onFulfilled)
-    /* 支持链式的 .then().then() */
+    /* returning this will support the chain of using then() */
     return this
   }
 
   function resolve(value) {
     /*
-     Need Fix Important：
-     只是基于第一次的异步返回结果离散处理 value
-     不是PromiseA+规范中连续then的需求
+     * Need Fix Important：
+     * the value is just the first result of async action, means all of the callbacks in deferreds will get the same value
+     * but callback need get the result returned by its nearest async action before(see details in Promise/A+ criterion)
      */
     setTimeout(function () {
       deferreds.forEach(function (deferred) {
@@ -25,8 +25,8 @@ function Promise(asyncFn) {
     }, 0)
   }
 
-  /* asyncFn 是 new Promise 实例时执行的异步方法 */
-  /* resolve 是异步方法执行成功时调用的方法 */
+  /* asyncFn will be executed when new Promise */
+  /* resolve will be executed when asyncFn completed successfully */
   asyncFn(resolve)
 }
 
@@ -34,20 +34,18 @@ function begin() {
   var promise = new Promise(function (resolve) {
     if (options.async) {
       console.log('Async....')
-      /* 异步代码 */
+      /* async code */
       setTimeout(function () {
         resolve(2016)
       }, 2000)
     } else {
       console.log('Sync....')
       /*
-       Has Fixed 1：
-       resolve 中使用
-       setTimeout(function(){
-       ……………………
-       }, 0)
-       将 deferreds 循环执行延迟到执行队列的最后
-       */
+      * Fixed 1：
+      * using setTimeout and setting timeout to 0
+      * this will delay iterating the deferreds util all the sync code executed
+      * offer the opportunity for then() to register the callback to deferreds
+       * */
       resolve(2016)
     }
   })

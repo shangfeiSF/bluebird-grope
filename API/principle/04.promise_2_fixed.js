@@ -4,13 +4,13 @@ var nopt = require('nopt')
 function Promise(asyncFn) {
   var deferreds = []
 
-  // ---Has Fix 2 part-1：引入状态state 和 私有变量 value
+  // --- Fixed 2 part-1：set state and value
   var state = 'pending'
   var value = null
-  // ---Has Fix 2 part-1
+  // -- Fixed 2 part-1
 
   this.then = function (onFulfilled) {
-    // ---Has Fix 2 part-2：检查 state 为 pending 时注册到 deferreds；为 fulfilled 时直接执行 onFulfilled(value)
+    // --- Fixed 2 part-2：registered callback to deferreds when state is 'pending'; execute callback(value) when state is 'fulfilled'
     if (state === 'pending') {
       deferreds.push(onFulfilled)
       return this
@@ -18,19 +18,19 @@ function Promise(asyncFn) {
 
     onFulfilled(value)
     return this
-    // ---Has Fix 2 part-2
+    // --- Fixed 2 part-2
   }
 
   function resolve(newValue) {
-    // ---Has Fix 2 part-3：异步成功后 state 置为 fulfilled 私有变量 value = newValue
+    // --- Fixed 2 part-3：set state to 'fulfilled' and value to newValue
     state = 'fulfilled'
     value = newValue
-    // ---Has Fix 2 part-3
+    // --- Fixed 2 part-3
 
     /*
-     Need Fix Important：
-     只是基于第一次的异步返回结果离散处理 value
-     不是PromiseA+规范中连续then的需求
+     * Need Fix Important：
+     * the value is just the first result of async action, means all of the callbacks in deferreds will get the same value
+     * but callback need get the result returned by its nearest async action before(see details in Promise/A+ criterion)
      */
     setTimeout(function () {
       deferreds.forEach(function (deferred) {
@@ -46,7 +46,7 @@ function begin() {
   var promise = new Promise(function (resolve) {
     if (options.async) {
       console.log('Async....')
-      /* 异步代码 */
+      /* async code */
       setTimeout(function () {
         resolve(2016)
       }, 2000)
@@ -71,9 +71,11 @@ var options = nopt({
 }, process.argv, 2)
 
 var step_1 = begin()
+  /* this callback can be registered into deferreds */
   .then(function (res) {
     console.log('[Response #1] --- ' + res)
   })
+  /* this callback also can be registered into deferreds */
   .then(function (res) {
     console.log('[Response #2] --- ' + res)
   })
@@ -82,12 +84,12 @@ setTimeout(function () {
   step_1.then(function (res) {
     console.log('[Response #3] --- ' + res)
   })
-}, options.delay ? options.delay : 1000)
+}, options.delay ? options.delay : 3000)
 
 // 04.promise_2_fixed.js -s
-// 04.promise_2_fixed.js -s -d1000
-// 04.promise_2_fixed.js -s -d5000
+// 04.promise_2_fixed.js -s -d1
+// 04.promise_2_fixed.js -s -d5
 
 // 04.promise_2_fixed.js -a
-// 04.promise_2_fixed.js -a -d1000
-// 04.promise_2_fixed.js -a -d5000
+// 04.promise_2_fixed.js -a -d1
+// 04.promise_2_fixed.js -a -d5

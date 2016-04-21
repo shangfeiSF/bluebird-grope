@@ -2,29 +2,29 @@
 var nopt = require('nopt')
 
 function Promise(asyncFn) {
-  /* deferreds 是延迟执行的队列 */
+  /* deferreds will store the callbacks which registered with then() */
   var deferreds = []
 
-  /* then 是将异步执行成功后的回调注册到 deferreds */
+  /* using then() to register the callback into the promise (actually into the deferreds) */
   this.then = function (onFulfilled) {
     deferreds.push(onFulfilled)
-    /* 支持链式的 .then().then() */
+    /* returning this will support the chain of using then() */
     return this
   }
 
   function resolve(value) {
     /*
-     Need Fix Important：
-     只是基于第一次的异步返回结果离散处理 value
-     不是PromiseA+规范中连续then的需求
+     * Need Fix Important：
+     * the value is just the first result of async action, means all of the callbacks in deferreds will get the same value
+     * but callback need get the result returned by its nearest async action before(see details in Promise/A+ criterion)
      */
     deferreds.forEach(function (deferred) {
       deferred(value)
     })
   }
 
-  /* asyncFn 是 new Promise 实例时执行的异步方法 */
-  /* resolve 是异步方法执行成功时调用的方法 */
+  /* asyncFn will be executed when new Promise */
+  /* resolve will be executed when asyncFn completed successfully */
   asyncFn(resolve)
 }
 
@@ -32,17 +32,17 @@ function begin() {
   var promise = new Promise(function (resolve) {
     if (options.async) {
       console.log('Async....')
-      /* 异步代码 */
+      /* async code */
       setTimeout(function () {
         resolve(2016)
       }, 2000)
     } else {
       console.log('Sync....')
       /*
-       Need Fix 1：
-       同步代码, 有严重的问题：begin之后通过 then 注册到 deferreds 实际上还未执行
-       同步执行到 resolve(2016) 后 deferreds 是空
-       */
+      * Need Fix 1：
+      * sync code is invalid, the callbacks that expected to be registered into deferreds have not been registered
+      * deferreds is empty when excuting resolve(2016)
+      * */
       resolve(2016)
     }
   })
