@@ -8,56 +8,49 @@ var colors = require('colors')
 
 var common = require('./00.common')
 
-fs.readdirAsync(process.cwd())
+var principle = path.join(process.cwd(), 'principle')
+
+fs.readdirAsync(principle)
   .then(function (names) {
-    var files = []
-
-    for (var index = 0; index < names.length; index++) {
-      files.push({
-        name: names[index],
+    return names.map(function (name, index) {
+      return {
+        index: index,
+        name: name,
         stamp: common.stamp()
-      })
-    }
-
-    return files
+      }
+    })
   })
   .filter(function (file) {
-    var filePath = path.join(__dirname, file.name)
-
-    var item = fs.statAsync(filePath)
+    return fs.statAsync(path.join(principle, file.name))
       .then(function (stat) {
         return !stat.isDirectory()
       })
-
-    return item
   })
   .map(function (file) {
-    var filePath = path.join(__dirname, file.name)
+    var stat = fs.statAsync(path.join(principle, file.name))
 
-    var stat = fs.statAsync(filePath)
+    var contents = fs.readFileAsync(path.join(principle, file.name))
 
-    var contents = fs.readFileAsync(filePath)
-
-    var item = Promise.join(stat, contents, function (stat, contents) {
+    /* Promise.join */
+    return Promise.join(stat, contents, function (stat, contents) {
       return {
+        index: file.index,
         name: file.name,
         stamp: file.stamp,
         stat: stat,
         contents: contents
       }
     })
-
-    return item
   })
   .then(function (files) {
     return files.sort.call(files, function (file1, file2) {
+      /* inversion  */
       return file2.name.localeCompare(file1.name)
     })
   })
   .then(function (files) {
-    for (var i = 0; i < files.length; i++) {
-      var file = files[i]
-      var log= [file.stamp, '---', file.name, '---', file.stat.size, '---',  file.contents.length].join(' ')
-      console.log((log).yellow)
-    }
+    files.forEach(function (file, index) {
+      var msg = [index, file.index, file.name, file.stamp, file.stat.size, file.contents.length].join(' --- ')
+      console.log(msg.green)
+    })
   })

@@ -8,22 +8,21 @@ var colors = require('colors')
 
 var common = require('./00.common')
 
-fs.readdirAsync(process.cwd())
+var principle = path.join(process.cwd(), 'principle')
+
+fs.readdirAsync(principle)
   .then(function (names) {
-    var files = []
-
-    for (var index = 0; index < names.length; index++) {
-      files.push({
-        name: names[index],
+    return names.map(function (name, index) {
+      return {
+        index: index,
+        name: name,
         stamp: common.stamp()
-      })
-    }
-
-    return files
+      }
+    })
   })
   .then(function (files) {
-    for (var i = 0; i < files.length; i++) {
-      var file = files[i]
-      console.log((file.stamp + ' --- ' + file.name).yellow)
-    }
+    files.forEach(function (file, index) {
+      var msg = [index, file.index, file.name, file.stamp].join(' --- ')
+      console.log(msg.green)
+    })
   })
