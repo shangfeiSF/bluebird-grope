@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 var path = require('path')
+var openSync = require('fs').openSync
+var writeSync = require('fs').writeSync
 
 var Promise = require('bluebird')
 
 var colors = require('colors')
-var openSync = require('fs').openSync
-var writeSync = require('fs').writeSync
 
-// Promise.promisifyAll 的函数原型：
 /*
+ Promise.promisifyAll definition:
+
  Promise.promisifyAll(
  Object target,
  [Object options {
@@ -19,27 +20,25 @@ var writeSync = require('fs').writeSync
  ) -> Object
  */
 
-// Option: filter
-// filter 的函数原型
-/*
- Promise.promisifyAll(Object target, {
- filter: function(name, func, target, passesDefaultFilter) {
- // name = the property name to be promisified without suffix
- // func = the function entity
- // target = the target object where the promisified func will be put with name + suffix
- // passesDefaultFilter = whether the default filter would be passed
- // return boolean (return value is coerced, so not returning anything is same as returning false)
-
- return passesDefaultFilter && ...}
- })
- */
-
 function promisifyAllWapper(module, config) {
   var logger = openSync(path.join(__dirname, '../log', config.loggerName), 'w+')
   var log = {}
 
   var promisifyModule = Promise.promisifyAll(module, {
     suffix: config.suffix,
+
+    /*
+     Option: filter is defined as below
+     function(name, func, target, passesDefaultFilter) {
+     // name = the property name to be promisified without suffix
+     // func = the function entity
+     // target = the target object where the promisified func will be put with name + suffix
+     // passesDefaultFilter = whether the default filter would be passed
+     // return boolean (return value is coerced, so not returning anything is same as returning false)
+
+     return passesDefaultFilter && ...}
+     })
+     */
 
     filter: function (name, func, target, passesDefaultFilter) {
       log[name] = {
@@ -82,38 +81,28 @@ var partial = promisifyAllWapper(require('fs'), {
 
 whole.readdirCustomWhole(path.join(__dirname, '../asset'))
   .then(function (names) {
-    console.log('--------------------------------------'.yellow)
-    console.log(('[Files in asset directory]').green)
-    console.log(names)
-    console.log('--------------------------------------\n'.yellow)
+    console.log('Files:'.white)
+    console.log(JSON.stringify(names, null, 2).green)
   })
 
 whole.statCustomWhole(__filename)
   .then(function (state) {
-    console.log('--------------------------------------'.yellow)
-    console.log(('[File state of ' + __filename + ']').green)
-    console.log(JSON.stringify(state, null, 2))
-    console.log('--------------------------------------\n'.yellow)
+    console.log(('[File state of ' + __filename + ']').white)
+    console.log(JSON.stringify(state, null, 2).green)
   })
 
 partial.readdirCustomPartial(path.join(__dirname, '../asset'))
   .then(function (names) {
-    console.log('--------------------------------------'.yellow)
-    console.log(('[Files in asset directory]').green)
-    console.log(names)
-    console.log('--------------------------------------\n'.yellow)
+    console.log('Files:'.white)
+    console.log(JSON.stringify(names, null, 2).yellow)
   })
 
 try {
   partial.statCustomPartial(__filename)
     .then(function (state) {
-      console.log('--------------------------------------'.yellow)
-      console.log(('[File state of ' + __filename + ']').green)
-      console.log(JSON.stringify(state, null, 2))
-      console.log('--------------------------------------\n'.yellow)
+      console.log(('[File state of ' + __filename + ']').white)
+      console.log(JSON.stringify(state, null, 2).yellow)
     })
-} catch (err) {
-  console.log('--------------------------------------'.red)
-  console.log((err + '').red)
-  console.log('--------------------------------------\n'.red)
+} catch (error) {
+  console.log(String(error).red)
 }

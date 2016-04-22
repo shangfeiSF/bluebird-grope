@@ -5,8 +5,9 @@ var Promise = require('bluebird')
 
 var colors = require('colors')
 
-// Promise.promisifyAll 的函数原型：
 /*
+ Promise.promisifyAll definition:
+
  Promise.promisifyAll(
  Object target,
  [Object options {
@@ -17,24 +18,26 @@ var colors = require('colors')
  ) -> Object
  */
 
-// Option: suffix
-/*
- The limits for custom suffices:
- （1）Choose the suffix carefully, it must not collide with anything
- （2）PascalCase（also UpperCamelCase） the suffix
- （3）The suffix must be a valid JavaScript identifier using ASCII letters
- （4）Always use the same suffix everywhere in your application（create a wrapper to make this easier）
- */
-
 function promisifyAllWapper(module, config) {
   var promisifyModule = Promise.promisifyAll(module, {
+    /*
+     Option: suffix is the limits for custom suffices
+     (1) Choose the suffix carefully, it must not collide with anything
+     (2) PascalCase（also UpperCamelCase） the suffix
+     (3) The suffix must be a valid JavaScript identifier using ASCII letters
+     (4) Always use the same suffix everywhere in your application（create a wrapper to make this easier）
+     */
     suffix: config.suffix
   })
 
-  promisifyModule._suffix = config.suffix
+  var _suffix = config.suffix
+
   promisifyModule._invoke = function (func) {
-    return this[func + this._suffix]
+    return this[func + _suffix]
   }
+
+  console.log('Promise.promisifyAll return:'.white)
+  console.log(JSON.stringify(promisifyModule, null, 2).yellow)
 
   return promisifyModule
 }
@@ -45,7 +48,6 @@ var fs = promisifyAllWapper(require('fs'), {
 
 fs._invoke('readdir')(path.join(__dirname, '../asset'))
   .then(function (names) {
-    console.log(('[Files is asset directory:]').green)
-    console.log(names)
-    console.log('--------------------------------------'.green)
+    console.log('Files:'.white)
+    console.log(JSON.stringify(names, null, 2).green)
   })

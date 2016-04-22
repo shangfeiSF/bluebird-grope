@@ -5,8 +5,9 @@ var Promise = require('bluebird')
 
 var colors = require('colors')
 
-// Promise.promisifyAll 的函数原型：
 /*
+ Promise.promisifyAll definition:
+
  Promise.promisifyAll(
  Object target,
  [Object options {
@@ -17,13 +18,6 @@ var colors = require('colors')
  ) -> Object
  */
 
-// Option: multiArgs
-/*
- Setting multiArgs to true means the resulting promise will always fulfill with an array of the callback's success value(s).
- This is needed because promises only support a single success value while some callback API's have multiple success value.
- The default is to ignore all but the first success value of a callback function.
- */
-
 function promisifyAllWapper(module, config) {
   var promisifyModule = Promise.promisifyAll(module, {
     suffix: config.suffix,
@@ -32,6 +26,12 @@ function promisifyAllWapper(module, config) {
       return passesDefaultFilter && config.filter(name)
     },
 
+    /*
+     Option: multiArgs
+     Setting multiArgs to true means the resulting promise will always fulfill with an array of the callback's success value(s).
+     This is needed because promises only support a single success value while some callback API's have multiple success value.
+     The default is to ignore all but the first success value of a callback function.
+     */
     multiArgs: config.multiArgs || false
   })
 
@@ -42,62 +42,44 @@ var multi = promisifyAllWapper(require('fs'), {
   suffix: 'CustomMulti',
 
   filter: function (name) {
-    return name === 'stat'
+    return true
   },
 
   multiArgs: true
 })
 
-var rest = promisifyAllWapper(require('fs'), {
-  suffix: 'CustomRest',
+var single = promisifyAllWapper(require('fs'), {
+  suffix: 'CustomSingle',
 
   filter: function (name) {
     return true
   }
 })
 
-try {
-  multi.readdirCustomMulti(path.join(__dirname, '../asset'))
-    .then(function (names) {
-      console.log('--------------------------------------'.yellow)
-      console.log(('[isArray?]').green)
-      console.log(state instanceof Array)
-      console.log(('[Files in asset directory]').green)
-      console.log(names)
-      console.log('--------------------------------------\n'.yellow)
-    })
-} catch (err) {
-  console.log('--------------------------------------'.red)
-  console.log((err + '').red)
-  console.log('--------------------------------------\n'.red)
-}
+multi.readdirCustomMulti(path.join(__dirname, '../asset'))
+  .then(function (names) {
+    console.log('Files:'.white)
+    console.log('is Array?', names instanceof Array)
+    console.log(JSON.stringify(names, null, 2).green)
+  })
 
 multi.statCustomMulti(__filename)
   .then(function (state) {
-    console.log('--------------------------------------'.yellow)
-    console.log(('[isArray?]').green)
-    console.log(state instanceof Array)
-    console.log(('[File state of ' + __filename + ']').green)
-    console.log(JSON.stringify(state, null, 2))
-    console.log('--------------------------------------\n'.yellow)
+    console.log(('[File state of ' + __filename + ']').white)
+    console.log('is Array?', state instanceof Array)
+    console.log(JSON.stringify(state, null, 2).green)
   })
 
-rest.readdirCustomRest(path.join(__dirname, '../asset'))
+single.readdirCustomSingle(path.join(__dirname, '../asset'))
   .then(function (names) {
-    console.log('--------------------------------------'.yellow)
-    console.log(('[isArray?]').green)
-    console.log(names instanceof Array)
-    console.log(('[Files in asset directory]').green)
-    console.log(names)
-    console.log('--------------------------------------\n'.yellow)
+    console.log('Files:'.white)
+    console.log('is Array?', names instanceof Array)
+    console.log(JSON.stringify(names, null, 2).yellow)
   })
 
-rest.statCustomRest(__filename)
+single.statCustomSingle(__filename)
   .then(function (state) {
-    console.log('--------------------------------------'.yellow)
-    console.log(('[isArray?]').green)
-    console.log(state instanceof Array)
-    console.log(('[File state of ' + __filename + ']').green)
-    console.log(JSON.stringify(state, null, 2))
-    console.log('--------------------------------------\n'.yellow)
+    console.log(('[File state of ' + __filename + ']').white)
+    console.log('is Array?', state instanceof Array)
+    console.log(JSON.stringify(state, null, 2).yellow)
   })
