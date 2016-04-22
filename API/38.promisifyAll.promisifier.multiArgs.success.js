@@ -6,55 +6,61 @@ var Promise = require('bluebird')
 var nopt = require('nopt')
 var colors = require('colors')
 
-function Search() {
+function Query() {
   this.version = function () {
-    return '0.1.0'
+    return '0.1'
   }
-  this.author = 'yuncong'
+  this.author = 'shangfeiSF'
 
   this.options = nopt({
     basename: Boolean,
     extname: Boolean,
     dirname: Boolean,
+
     multiArgs: Boolean,
   }, {
     'b': ['--basename'],
     'b1': ['--basename', 'true'],
     'b0': ['--basename', 'false'],
+
     'e': ['--extname'],
     'e1': ['--extname', 'true'],
     'e0': ['--extname', 'false'],
+
     'd': ['--dirname'],
     'd1': ['--dirname', 'true'],
     'd0': ['--dirname', 'false'],
+
     'm': ['--multiArgs'],
     'm1': ['--multiArgs', 'true'],
     'm0': ['--multiArgs', 'false']
   }, process.argv, 2)
 }
 
-// Promise.promisifyAll 支持转换的模块中的方法需要满足以下：
-// （1）The  function should conform to node.js convention of accepting a callback as last argument
-// （2）and calling that callback with error as the first argument
-// （3）and success value on the second argument.
+// Promise.promisifyAll
+// (1) The  function should conform to node.js convention of accepting a callback as last argument
+// (2) and calling that callback with error as the first argument
+// (3) and success value on the second argument.
 
-Search.prototype.getBasename = function (filename, callback) {  // （1）
+Query.prototype.basename = function (name, callback) {  // (1)
   var self = this
-  var basename = path.basename(filename)
+
+  var basename = path.basename(name)
   var option = self.options.hasOwnProperty('basename') ? self.options.basename : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, basename, self.version(), self.author)   // （2）（3）
+      callback(null, basename, self.version(), self.author)   // (2) (3)
     } else {
       callback(new Error('getBasename is failed'))
     }
   }, 2000)
 }
 
-Search.prototype.getExtname = function (filename, callback) {
+Query.prototype.extname = function (name, callback) {
   var self = this
-  var extname = path.extname(filename)
+
+  var extname = path.extname(name)
   var option = self.options.hasOwnProperty('extname') ? self.options.extname : true
 
   setTimeout(function () {
@@ -66,9 +72,10 @@ Search.prototype.getExtname = function (filename, callback) {
   }, 2000)
 }
 
-Search.prototype.getDirname = function (filename, callback) {
+Query.prototype.dirname = function (name, callback) {
   var self = this
-  var dirname = path.dirname(filename)
+
+  var dirname = path.dirname(name)
   var option = self.options.hasOwnProperty('dirname') ? self.options.dirname : true
 
   setTimeout(function () {
@@ -80,10 +87,11 @@ Search.prototype.getDirname = function (filename, callback) {
   }, 2000)
 }
 
-var search = new Search()
+var query = new Query()
 
-// Promise.promisifyAll 的函数原型：
 /*
+ Promise.promisifyAll definition:
+
  Promise.promisifyAll(
  Object target,
  [Object options {
@@ -92,14 +100,6 @@ var search = new Search()
  multiArgs: boolean=false,
  promisifier: function(function originalFunction, function defaultPromisifier)}]
  ) -> Object
- */
-
-// Option: promisifier
-/*
- Optionally, you can define a custom promisifier,
- so you could promisifyAll e.g. the chrome APIs used in Chrome extensions.
- The promisifier gets a reference to the original method ,
- and should return a function which returns a promise.
  */
 
 function promisifyAllWapper(module, config) {
@@ -112,20 +112,28 @@ function promisifyAllWapper(module, config) {
 
     multiArgs: config.multiArgs || false,
 
+    /*
+     Option: promisifier
+     Optionally, you can define a custom promisifier,
+     so you could promisifyAll e.g. the chrome APIs used in Chrome extensions.
+     The promisifier gets a reference to the original method ,
+     and should return a function which returns a promise.
+     */
+
     promisifier: config.promisifier
   })
 
   return promisifyModule
 }
 
-var partial = promisifyAllWapper(search, {
-  suffix: 'CustomPartial',
+var queryCustom = promisifyAllWapper(query, {
+  suffix: 'Custom',
 
   filter: function (name) {
-    return name === 'getExtname' || name === 'getDirname'
+    return true
   },
 
-  multiArgs: search.options.multiArgs || false,
+  multiArgs: query.options.multiArgs || false,
 
   promisifier: function (originalMethod, defaultPromisifier) {
     var promisified = defaultPromisifier(originalMethod)
@@ -134,7 +142,6 @@ var partial = promisifyAllWapper(search, {
       // return an anonymous function
       var args = [].slice.call(arguments)
       // Needed so that the original method can be called with the correct context
-      // 例如：getBasename中self.options self.version()都需要正确的上线文对象， 与Promise.promisify的context配置是一样的作用
       var self = this
 
       // this anonymous function need return a promise
@@ -146,62 +153,35 @@ var partial = promisifyAllWapper(search, {
   }
 })
 
-try {
-  partial.getBasenameCustomPartial(__filename)
-    .then(function (result) {
-      console.log('--------------------------------------'.green)
-      console.log(('[isArray?]').green)
-      console.log(result instanceof Array)
-      console.log(('[Basename version author').green)
-      console.log((result))
-      console.log('--------------------------------------\n'.green)
-    }, function (err) {
-      console.log('--------------------------------------'.yellow)
-      console.log((err + '').yellow)
-      console.log('--------------------------------------\n'.yellow)
-    })
-} catch (err) {
-  console.log('--------------------------------------'.red)
-  console.log((err + '').red)
-  console.log('--------------------------------------\n'.red)
-}
+queryCustom.basenameCustom(__filename)
+  .then(function (result) {
+    console.log('\nbasenameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
 
-try {
-  partial.getExtnameCustomPartial(__filename)
-    .then(function (result) {
-      console.log('--------------------------------------'.green)
-      console.log(('[isArray?]').green)
-      console.log(result instanceof Array)
-      console.log(('[Extname version author]').green)
-      console.log((result))
-      console.log('--------------------------------------\n'.green)
-    }, function (err) {
-      console.log('--------------------------------------'.yellow)
-      console.log((err + '').yellow)
-      console.log('--------------------------------------\n'.yellow)
-    })
-} catch (err) {
-  console.log('--------------------------------------'.red)
-  console.log((err + '').red)
-  console.log('--------------------------------------\n'.red)
-}
+    console.log(('basename version author:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log('\n' + String(error).red)
+  })
 
-try {
-  partial.getDirnameCustomPartial(__filename)
-    .then(function (result) {
-      console.log('--------------------------------------'.green)
-      console.log(('[isArray?]').green)
-      console.log(result instanceof Array)
-      console.log(('[Dirname version author]').green)
-      console.log((result))
-      console.log('--------------------------------------\n'.green)
-    }, function (err) {
-      console.log('--------------------------------------'.yellow)
-      console.log((err + '').yellow)
-      console.log('--------------------------------------\n'.yellow)
-    })
-} catch (err) {
-  console.log('--------------------------------------'.red)
-  console.log((err + '').red)
-  console.log('--------------------------------------\n'.red)
-}
+queryCustom.extnameCustom(__filename)
+  .then(function (result) {
+    console.log('\nextnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('extname version author:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log('\n' + String(error).red)
+  })
+
+queryCustom.dirnameCustom(__filename)
+  .then(function (result) {
+    console.log('\ndirnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('dirname version author:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log('\n' + String(error).red)
+  })
