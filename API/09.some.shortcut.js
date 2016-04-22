@@ -86,5 +86,5 @@ fs.readdirAsync(principle)
       console.log(msg.green)
     })
   }, function (error) {
-    console.log(error)
+    console.log(JSON.stringify(error).red)
   })

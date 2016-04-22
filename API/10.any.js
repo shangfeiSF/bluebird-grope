@@ -86,5 +86,5 @@ fs.readdirAsync(principle)
     var msg = [files.task, files.index, files.name, files.stamp, files.stat.size, files.contents.length].join(' --- ')
     console.log(msg.green)
   }, function (error) {
-    console.log(error)
+    console.log(JSON.stringify(error).red)
   })
