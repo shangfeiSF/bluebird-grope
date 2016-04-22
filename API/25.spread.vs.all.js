@@ -8,107 +8,120 @@ var colors = require('colors')
 
 var common = require('./00.common')
 
-fs.readdirAsync(process.cwd())
-  .filter(function (name) {
-    var filePath = path.join(__dirname, name)
+var principle = path.join(process.cwd(), 'principle')
 
-    var item = fs.statAsync(filePath)
+fs.readdirAsync(principle)
+  .then(function (names) {
+    return names.map(function (name, index) {
+      return {
+        index: index,
+        name: name,
+        stamp: common.stamp()
+      }
+    })
+  })
+  .filter(function (file) {
+    return fs.statAsync(path.join(principle, file.name))
       .then(function (stat) {
         return !stat.isDirectory()
       })
-
-    return item
   })
-  .then(function (names) {
-    var tasks = []
-
-    for (var i = 0; i < names.length; i++) {
-      var name = names[i]
-      var filePath = path.join(__dirname, name)
-
+  .then(function (files) {
+    return files.map(function (file, index) {
       var info = Promise.resolve({
-        name: name,
-        stamp: common.stamp()
+        task: index,
+        index: file.index,
+        name: file.name,
+        stamp: file.stamp
       })
 
-      var stat = fs.statAsync(filePath)
+      var stat = fs.statAsync(path.join(principle, file.name))
 
-      var contents = fs.readFileAsync(filePath)
+      var contents = fs.readFileAsync(path.join(principle, file.name))
 
-      tasks.push(
-        Promise.join(info, stat, contents, function (info, stat, contents) {
-          return {
-            name: info.name,
-            stamp: info.stamp,
-            size: stat.size,
-            length: contents.length
-          }
-        })
-      )
-    }
-
-    return tasks
+      return Promise.join(info, stat, contents, function (info, stat, contents) {
+        return {
+          task: info.task,
+          index: info.index,
+          name: info.name,
+          stamp: info.stamp,
+          size: stat.size,
+          length: contents.length
+        }
+      })
+    })
   })
-  .spread(function () {
-    console.log('Promise.spread arguments.length：' + (arguments.length + '').white)
-    console.log('Promise.spread arguments is Array ? ', arguments instanceof Array)
+  .spread(function (argv1, argv2) {
+    console.log('spread return argv1 and argv2:'.white)
+    console.log(JSON.stringify(argv1).yellow)
+    console.log(JSON.stringify(argv2).yellow)
 
-    Array.prototype.slice.call(arguments).forEach(function (file, index) {
-      var log = [[index].join('---'), [file.name, file.stamp, file.size, file.length].join('---')].join(' ==> ')
-      console.log(log.green)
+    console.log('spread return arguments:'.white)
+    console.log(JSON.stringify(arguments).yellow)
+
+    console.log('Promise.spread return Array ? '.white, arguments instanceof Array)
+
+    var files = Array.prototype.slice.call(arguments)
+
+    files.forEach(function (file, index) {
+      var msg = [index, file.task, file.index, file.name, file.stamp, file.size, file.length].join(' --- ')
+      console.log(msg.yellow)
     })
   })
 
-fs.readdirAsync(process.cwd())
-  .filter(function (name) {
-    var filePath = path.join(__dirname, name)
-
-    var item = fs.statAsync(filePath)
+fs.readdirAsync(principle)
+  .then(function (names) {
+    return names.map(function (name, index) {
+      return {
+        index: index,
+        name: name,
+        stamp: common.stamp()
+      }
+    })
+  })
+  .filter(function (file) {
+    return fs.statAsync(path.join(principle, file.name))
       .then(function (stat) {
         return !stat.isDirectory()
       })
-
-    return item
   })
-  .then(function (names) {
-    var tasks = []
-
-    for (var i = 0; i < names.length; i++) {
-      var name = names[i]
-      var filePath = path.join(__dirname, name)
-
+  .then(function (files) {
+    return files.map(function (file, index) {
       var info = Promise.resolve({
-        name: name,
-        stamp: common.stamp()
+        task: index,
+        index: file.index,
+        name: file.name,
+        stamp: file.stamp
       })
 
-      var stat = fs.statAsync(filePath)
+      var stat = fs.statAsync(path.join(principle, file.name))
 
-      var contents = fs.readFileAsync(filePath)
+      var contents = fs.readFileAsync(path.join(principle, file.name))
 
-      tasks.push(
-        Promise.join(info, stat, contents, function (info, stat, contents) {
-          return {
-            name: info.name,
-            stamp: info.stamp,
-            size: stat.size,
-            length: contents.length
-          }
-        })
-      )
-    }
-
-    return tasks
+      return Promise.join(info, stat, contents, function (info, stat, contents) {
+        return {
+          task: info.task,
+          index: info.index,
+          name: info.name,
+          stamp: info.stamp,
+          size: stat.size,
+          length: contents.length
+        }
+      })
+    })
   })
   .all()
   .then(function (files) {
-    console.log('Arguments.length：' + (files.length + '').white)
-    console.log('Arguments is Array ? ', files instanceof Array)
+    console.log('all return files:'.white)
+    console.log(JSON.stringify(files).green)
 
-    for (var index = 0; index < files.length; index++) {
-      var file = files[index]
+    console.log('all return arguments:'.white)
+    console.log(JSON.stringify(arguments).green)
 
-      var log = [[index].join('---'), [file.name, file.stamp, file.size, file.length].join('---')].join(' ==> ')
-      console.log(log.yellow)
-    }
+    console.log('Promise.all return Array ? '.white, files instanceof Array)
+
+    files.forEach(function (file, index) {
+      var msg = [index, file.task, file.index, file.name, file.stamp, file.size, file.length].join(' --- ')
+      console.log(msg.green)
+    })
   })

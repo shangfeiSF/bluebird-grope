@@ -8,71 +8,72 @@ var colors = require('colors')
 
 var common = require('./00.common')
 
-var global = {
-  seed: Math.floor(Math.random() * 100),
+var principle = path.join(process.cwd(), 'principle')
+var obj = {
   paths: {},
-  cencus: {}
+  census: {}
 }
 
-// .bind一个Object
-fs.readdirAsync(process.cwd())
-  .bind(global)
-  .filter(function (name) {
-    var filePath = path.join(__dirname, name)
+fs.readdirAsync(principle)
+  /* bind a normal object */
+  .bind(obj)
+  .then(function (names) {
+    return names.map(function (name, index) {
+      return {
+        index: index,
+        name: name,
+        stamp: common.stamp()
+      }
+    })
+  })
+  .filter(function (file) {
+    /* restrore the full path into obj.paths */
+    this.paths[file.name] = path.join(principle, file.name)
 
-    // paths 存储文件的绝对路径
-    this.paths[name] = filePath
-
-    var item = fs.statAsync(filePath)
+    return fs.statAsync(path.join(principle, file.name))
       .then(function (stat) {
         return !stat.isDirectory()
       })
-
-    return item
   })
-  .then(function (names) {
-    var tasks = []
+  .then(function (files) {
+    var that = this
 
-    for (var i = 0; i < names.length; i++) {
-      var name = names[i]
-      var filePath = this.paths[name]
-
+    return files.map(function (file, index) {
       var info = Promise.resolve({
-        name: name,
-        stamp: common.stamp()
+        task: index,
+        index: file.index,
+        name: file.name,
+        stamp: file.stamp
       })
 
-      var stat = fs.statAsync(filePath)
+      var stat = fs.statAsync(path.join(principle, file.name))
 
-      var contents = fs.readFileAsync(filePath)
+      var contents = fs.readFileAsync(path.join(principle, file.name))
 
-      var _global = this   // Promise.join 中 this 不再指向global
-      tasks.push(
-        Promise.join(info, stat, contents, function (info, stat, contents) {
-          // cencus 存储文件的信息
-          _global.cencus[info.name] = {
-            name: info.name,
-            stamp: info.stamp,
-            size: stat.size,
-            length: contents.length
-          }
+      return Promise.join(info, stat, contents, function (info, stat, contents) {
+        /* restrore the census into obj.census */
+        that.census[info.name] = {
+          size: stat.size,
+          length: contents.length
+        }
 
-          return {
-            name: info.name,
-            stamp: info.stamp,
-            size: stat.size,
-            length: contents.length
-          }
-        })
-      )
-    }
-
-    return tasks
+        return {
+          task: info.task,
+          index: info.index,
+          name: info.name,
+          stamp: info.stamp,
+          size: stat.size,
+          length: contents.length
+        }
+      })
+    })
   })
   .spread(function () {
-    Array.prototype.slice.call(arguments).forEach(function (file, index) {
-      var log = [[index].join('---'), [file.name, file.stamp, file.size, file.length].join('---')].join(' ==> ')
-      console.log(log.green)
-    })
-    console.dir(this)
+    console.log('spread return arguments:'.white)
+    console.log(JSON.stringify(arguments).yellow)
+
+    console.log('Promise.spread return Array ? '.white, arguments instanceof Array)
+
+    console.log('bind object:'.white)
+    console.log(JSON.stringify(this, null, 2).green)
   })
