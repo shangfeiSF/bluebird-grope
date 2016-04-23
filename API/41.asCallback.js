@@ -7,90 +7,118 @@ var fs = Promise.promisifyAll(require("fs"))
 var nopt = require('nopt')
 var colors = require('colors')
 
-var common = require('./00.common')
-
-function Search() {
+function Query() {
   this.version = function () {
-    return '0.1.0'
+    return '0.1'
   }
-  this.author = 'yuncong'
+  this.author = 'shangfeiSF'
 
   this.options = nopt({
     basename: Boolean,
     extname: Boolean,
     dirname: Boolean,
-    logger: Boolean,
-    multiArgs: Boolean,
+    root: Boolean
   }, {
     'b': ['--basename'],
     'b1': ['--basename', 'true'],
     'b0': ['--basename', 'false'],
+
     'e': ['--extname'],
     'e1': ['--extname', 'true'],
     'e0': ['--extname', 'false'],
+
     'd': ['--dirname'],
     'd1': ['--dirname', 'true'],
-    'd0': ['--dirname', 'false']
+    'd0': ['--dirname', 'false'],
+
+    'r': ['--root'],
+    'r1': ['--root', 'true'],
+    'r0': ['--root', 'false']
   }, process.argv, 2)
 }
 
-Search.prototype.getBasename = function (filename, callback) {
+Query.prototype.basename = function (name, callback) {
   var self = this
-  var basename = path.basename(filename)
+
+  var basename = path.basename(name)
   var option = self.options.hasOwnProperty('basename') ? self.options.basename : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, basename, self.version(), self.author)
+      callback(null, basename, self.version())
     } else {
-      callback(new Error('getBasename is failed'))
+      callback(new Error('basename is failed'))
     }
   }, 2000)
 }
 
-Search.prototype.getExtname = function (filename, callback) {
+Query.prototype.extname = function (name, callback) {
   var self = this
-  var extname = path.extname(filename)
+
+  var extname = path.extname(name)
   var option = self.options.hasOwnProperty('extname') ? self.options.extname : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, extname, self.version(), self.author)
+      callback(null, extname, self.version())
     } else {
-      callback(new Error('getExtname is failed'))
+      callback(new Error('extname is failed'))
     }
   }, 2000)
 }
 
-Search.prototype.getDirname = function (filename, callback) {
+Query.prototype.dirname = function (name, callback) {
   var self = this
-  var dirname = path.dirname(filename)
+
+  var dirname = path.dirname(name)
   var option = self.options.hasOwnProperty('dirname') ? self.options.dirname : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, dirname, self.version(), self.author)
+      callback(null, dirname, self.version())
     } else {
-      callback(new Error('getDirname is failed'))
+      callback(new Error('dirname is failed'))
     }
   }, 2000)
 }
 
-var search = new Search()
+Query.prototype.root = function (name, callback) {
+  var self = this
 
-var getBasenameAsync = Promise.promisify(search.getBasename, {
-  context: search,
+  var root = path.parse(name).root
+  var option = self.options.hasOwnProperty('root') ? self.options.root : true
+
+  setTimeout(function () {
+    if (option) {
+      callback(null, root, self.version())
+    } else {
+      callback(new Error('root is failed'))
+    }
+  }, 2000)
+}
+
+var query = new Query()
+
+// promise return an array
+var basenameCustom = Promise.promisify(query.basename, {
+  context: query,
   multiArgs: true
 })
 
-var getExtnameAsync = Promise.promisify(search.getExtname, {
-  context: search,
+// promise return an array
+var extnameCustom = Promise.promisify(query.extname, {
+  context: query,
   multiArgs: true
 })
 
-var getDirnameAsync = Promise.promisify(search.getDirname, {
-  context: search,
-  multiArgs: true
+// promise return a value
+var dirnameCustom = Promise.promisify(query.dirname, {
+  context: query
+})
+
+// promise return a value
+var rootCustom = Promise.promisify(query.root, {
+  context: query
 })
 
 /*
@@ -108,51 +136,120 @@ var getDirnameAsync = Promise.promisify(search.getDirname, {
  This can be used to create APIs that both accept node-style callbacks and return promises:
  */
 
-getBasenameAsync(__filename)
+// success
+basenameCustom(__filename)
   .asCallback(function (error, result) {
-    // asCallback 相当定义并执行一个中间件
+    // asCallback is the same as a middleware to deal with error and result
     if (error) {
-      // 同步代码正常执行
-      error.stat = 'asCallback handle error sync!'
+      // sync code is worked
+      console.log('\nbasenameCustom-asCallback-error'.yellow)
+      error.specs = 'asCallback deal with error sync!'
     } else {
-      // 异步代码失败
-      fs.statAsync(path.join(__dirname, result['0']))
-        .then(function (stat) {
-          console.log(stat)
-          result.push(stat)
-        })
-      // 同步代码正常执行
-      result.push('asCallback handle result sync!')
+      // sync code is worked
+      console.log('\nbasenameCustom-asCallback-result'.yellow)
+      result.push('asCallback deal with result sync!')
     }
   })
   .then(function (result) {
-    console.log('--------------getBasenameAsync--------------'.green)
-    console.log(result)
-    console.log('--------------------------------------------\n'.green)
+    console.log('\nbasenameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('basename version:').green)
+    console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
+    console.log('\n' + JSON.stringify(error, null, 2).magenta)
   })
 
-getExtnameAsync(__filename)
+// failed
+extnameCustom(__filename)
+  .asCallback(function (error, result) {
+    // asCallback is the same as a middleware to deal with error and result
+    if (error) {
+      // async code is worked, but no use to error that asCallback returned
+      fs.statAsync(__filename)
+        .then(function (stat) {
+          console.log('\nextnameCustom-asCallback-error'.yellow)
+          error.specs = stat.size
+        })
+    } else {
+      // async code is worked, but no use to error that asCallback returned
+      fs.statAsync(__filename)
+        .then(function (stat) {
+          console.log('\nextnameCustom-asCallback-result'.yellow)
+          result.push(stat.size)
+        })
+    }
+  })
   .then(function (result) {
-    console.log('--------------getExtnameAsync--------------'.yellow)
-    console.log(result)
-    console.log('-------------------------------------------\n'.yellow)
+    console.log('\nextnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('extname version:').green)
+    console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
+    console.log('\n' + JSON.stringify(error, null, 2).magenta)
   })
 
-getDirnameAsync(__filename)
-  .then(function (result) {
-    console.log('--------------getDirnameAsync--------------'.white)
-    console.log(result)
-    console.log('-------------------------------------------\n'.white)
-  }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
+// failed
+dirnameCustom(__filename)
+  .asCallback(function (error, result) {
+    // asCallback is the same as a middleware to deal with error and result
+    if (error) {
+      // sync code is worked
+      console.log('\ndirnameCustom-asCallback-error'.yellow)
+      error = new Error('asCallback deal with error sync!')
+    } else {
+      // sync code is worked
+      console.log('\ndirnameCustom-asCallback-result'.yellow)
+      result = 'asCallback deal with result sync!'
+    }
   })
+  .then(function (result) {
+    console.log('\ndirnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('dirname version:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log('\n' + JSON.stringify(error, null, 2).magenta)
+  })
+
+// failed
+rootCustom(__filename)
+  .asCallback(function (error, result) {
+    // asCallback is the same as a middleware to deal with error and result
+    if (error) {
+      // async code is worked, but no use to error that asCallback returned
+      fs.statAsync(__filename)
+        .then(function (stat) {
+          console.log('\nrootCustom-asCallback-error'.yellow)
+          error = new Error(stat.size)
+        })
+    } else {
+      // async code is worked, but no use to error that asCallback returned
+      fs.statAsync(__filename)
+        .then(function (stat) {
+          console.log('\nrootCustom-asCallback-result'.yellow)
+          result = stat.size
+        })
+    }
+  })
+  .then(function (result) {
+    console.log('\nrootCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('root version:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log('\n' + JSON.stringify(error, null, 2).magenta)
+  })
+
+// sync code and async code to add property to error or push a new item to result
+// both code is executed, but sync code is successful, while async is failed
+// 41.asCallback.js -b1 -e1
+// 41.asCallback.js -b0 -e0
+
+// sync code and async code to rewrite the value of error or result
+// both code is executed, but sync code and async code are failed
+// 41.asCallback.js -d1 -r1
+// 41.asCallback.js -d0 -r0
