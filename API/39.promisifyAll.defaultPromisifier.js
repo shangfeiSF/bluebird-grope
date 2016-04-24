@@ -168,7 +168,6 @@ queryCustom.basenameCustom(__filename, type)
     console.log('\n' + String(error).red)
   })
 
-
 var username = fs.readFileAsync(json, "utf8").then(JSON.parse).get('username')
 queryCustom.extnameCustom(__filename, username)
   .then(function (result) {
@@ -180,7 +179,6 @@ queryCustom.extnameCustom(__filename, username)
   }, function (error) {
     console.log('\n' + String(error).red)
   })
-
 
 var usernickname = fs.readFileAsync(json, "utf8").then(JSON.parse).get('usernickname')
 queryCustom.dirnameCustom(__filename, usernickname)

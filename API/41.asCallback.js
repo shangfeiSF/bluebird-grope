@@ -157,7 +157,7 @@ basenameCustom(__filename)
     console.log(('basename version:').green)
     console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('\n' + JSON.stringify(error, null, 2).magenta)
+    console.log('\n' + JSON.stringify(error, null, 2).red)
   })
 
 // failed
@@ -187,7 +187,7 @@ extnameCustom(__filename)
     console.log(('extname version:').green)
     console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('\n' + JSON.stringify(error, null, 2).magenta)
+    console.log('\n' + JSON.stringify(error, null, 2).red)
   })
 
 // failed
@@ -211,7 +211,7 @@ dirnameCustom(__filename)
     console.log(('dirname version:').green)
     console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('\n' + JSON.stringify(error, null, 2).magenta)
+    console.log('\n' + JSON.stringify(error, null, 2).red)
   })
 
 // failed
@@ -241,7 +241,7 @@ rootCustom(__filename)
     console.log(('root version:').green)
     console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('\n' + JSON.stringify(error, null, 2).magenta)
+    console.log('\n' + JSON.stringify(error, null, 2).red)
   })
 
 // sync code and async code to add property to error or push a new item to result

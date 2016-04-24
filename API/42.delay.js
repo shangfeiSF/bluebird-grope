@@ -7,156 +7,142 @@ var fs = Promise.promisifyAll(require("fs"))
 var nopt = require('nopt')
 var colors = require('colors')
 
-var common = require('./00.common')
-
-function Search() {
+function Query() {
   this.version = function () {
-    return '0.1.0'
+    return '0.1'
   }
-  this.author = 'yuncong'
+  this.author = 'shangfeiSF'
 
   this.options = nopt({
     basename: Boolean,
     extname: Boolean,
-    dirname: Boolean,
-    logger: Boolean,
-    multiArgs: Boolean,
+    dirname: Boolean
   }, {
     'b': ['--basename'],
     'b1': ['--basename', 'true'],
     'b0': ['--basename', 'false'],
+
     'e': ['--extname'],
     'e1': ['--extname', 'true'],
     'e0': ['--extname', 'false'],
+
     'd': ['--dirname'],
     'd1': ['--dirname', 'true'],
-    'd0': ['--dirname', 'false'],
-    'l': ['--logger'],
-    'l1': ['--logger', 'true'],
-    'l0': ['--logger', 'false'],
-    'm': ['--multiArgs'],
-    'm1': ['--multiArgs', 'true'],
-    'm0': ['--multiArgs', 'false']
+    'd0': ['--dirname', 'false']
   }, process.argv, 2)
 }
 
-Search.prototype.getBasename = function (filename, callback) {
+Query.prototype.basename = function (name, callback) {
   var self = this
-  var basename = path.basename(filename)
+
+  var basename = path.basename(name)
   var option = self.options.hasOwnProperty('basename') ? self.options.basename : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, basename, self.version(), self.author)
+      callback(null, basename, self.version())
     } else {
-      callback(new Error('getBasename is failed'))
+      callback(new Error('basename is failed'))
     }
   }, 2000)
 }
 
-Search.prototype.getExtname = function (filename, callback) {
+Query.prototype.extname = function (name, callback) {
   var self = this
-  var extname = path.extname(filename)
+
+  var extname = path.extname(name)
   var option = self.options.hasOwnProperty('extname') ? self.options.extname : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, extname, self.version(), self.author)
+      callback(null, extname, self.version())
     } else {
-      callback(new Error('getExtname is failed'))
+      callback(new Error('extname is failed'))
     }
   }, 2000)
 }
 
-Search.prototype.getDirname = function (filename, callback) {
+Query.prototype.dirname = function (name, callback) {
   var self = this
-  var dirname = path.dirname(filename)
+
+  var dirname = path.dirname(name)
   var option = self.options.hasOwnProperty('dirname') ? self.options.dirname : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, dirname, self.version(), self.author)
+      callback(null, dirname, self.version())
     } else {
-      callback(new Error('getDirname is failed'))
+      callback(new Error('dirname is failed'))
     }
   }, 2000)
 }
 
-var search = new Search()
+var query = new Query()
 
-var getBasenameAsync = Promise.promisify(search.getBasename, {
-  context: search,
+// promise return an array
+var basenameCustom = Promise.promisify(query.basename, {
+  context: query,
   multiArgs: true
 })
 
-var getExtnameAsync = Promise.promisify(search.getExtname, {
-  context: search,
+// promise return an array
+var extnameCustom = Promise.promisify(query.extname, {
+  context: query,
   multiArgs: true
 })
 
-var getDirnameAsync = Promise.promisify(search.getDirname, {
-  context: search,
-  multiArgs: true
+// promise return a value
+var dirnameCustom = Promise.promisify(query.dirname, {
+  context: query
 })
 
-var type = fs.readFileAsync("../asset/40.delay.json", "utf8")
-  .then(JSON.parse)
-  .get('type')
+var json = path.join(__dirname, '../asset', '40.delay.json')
 
-// type 虽然是promise，但是不会影响result，只是延时1000ms
-getBasenameAsync(__filename)
-  .delay(1000, type)
+var type = fs.readFileAsync(json, "utf8").then(JSON.parse).get('type')
+basenameCustom(__filename)
+// type is promise, but .delay() just return result after 3000ms
+// the promise result is the result of basenameCustom
+  .delay(3000, type)
   .then(function (result) {
-    console.log('--------------getBasenameAsync--------------'.green)
-    console.log(result)
-    console.log('--------------------------------------------\n'.green)
+    console.log('\nbasenameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('basename version:').green)
+    console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
+    console.log('\n' + JSON.stringify(error, null, 2).red)
   })
 
-// username是promise，而且是延时4000ms后传递给then执行promise
-var username = fs.readFileAsync("../asset/37.promisifyAll.defaultPromisifier.json", "utf8")
-  .then(JSON.parse)
-  .get('username')
-Promise.delay(4000, username).then(function (name) {
-  console.log('----------------------------------------'.cyan)
-  console.log((name).cyan)
-  console.log('----------------------------------------\n'.cyan)
+extnameCustom(__filename)
+// the promise result is the result of dirnameCustom and is returned after 4000ms
+  .delay(4000)
+  .then(function (result) {
+    console.log('\nextnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('extname version:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log('\n' + JSON.stringify(error, null, 2).red)
+  })
+
+dirnameCustom(__filename)
+// the promise result is the result of dirnameCustom and is returned after 5000ms
+  .delay(5000, 'foo')
+  .then(function (result) {
+    console.log('\ndirnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('dirname version:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log('\n' + JSON.stringify(error, null, 2).red)
+  })
+
+var username = fs.readFileAsync(json, "utf8").then(JSON.parse).get('username')
+// Promise.dalay() not only return the result of the username that is a promise
+// but also delay 6000ms
+Promise.delay(6000, username).then(function (username) {
+  console.log(('\nusername:').yellow)
+  console.log(JSON.stringify(username, null, 2))
 })
-
-// delay延时2000ms
-getExtnameAsync(__filename)
-  .delay(2000)
-  .then(function (result) {
-    console.log('--------------getExtnameAsync--------------'.yellow)
-    console.log(result)
-    console.log('-------------------------------------------\n'.yellow)
-  }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
-  })
-
-// usernickname是promise，而且是延时6000ms后传递给then执行promise
-var usernickname = fs.readFileAsync("../asset/37.promisifyAll.defaultPromisifier.json", "utf8")
-  .then(JSON.parse)
-  .get('usernickname')
-Promise.delay(6000, usernickname).then(function (nickname) {
-  console.log('----------------------------------------'.cyan)
-  console.log((nickname).cyan)
-  console.log('----------------------------------------\n'.cyan)
-})
-
-getDirnameAsync(__filename)
-  .delay(3000, 'something')
-  .then(function (result) {
-    console.log('--------------getDirnameAsync--------------'.white)
-    console.log(result)
-    console.log('-------------------------------------------\n'.white)
-  }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
-  })

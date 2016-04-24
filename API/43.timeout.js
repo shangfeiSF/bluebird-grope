@@ -7,132 +7,134 @@ var fs = Promise.promisifyAll(require("fs"))
 var nopt = require('nopt')
 var colors = require('colors')
 
-var common = require('./00.common')
-
-function Search() {
+function Query() {
   this.version = function () {
-    return '0.1.0'
+    return '0.1'
   }
-  this.author = 'yuncong'
+  this.author = 'shangfeiSF'
 
   this.options = nopt({
     basename: Boolean,
     extname: Boolean,
-    dirname: Boolean,
-    logger: Boolean,
-    multiArgs: Boolean,
+    dirname: Boolean
   }, {
     'b': ['--basename'],
     'b1': ['--basename', 'true'],
     'b0': ['--basename', 'false'],
+
     'e': ['--extname'],
     'e1': ['--extname', 'true'],
     'e0': ['--extname', 'false'],
+
     'd': ['--dirname'],
     'd1': ['--dirname', 'true'],
-    'd0': ['--dirname', 'false'],
-    'l': ['--logger'],
-    'l1': ['--logger', 'true'],
-    'l0': ['--logger', 'false'],
-    'm': ['--multiArgs'],
-    'm1': ['--multiArgs', 'true'],
-    'm0': ['--multiArgs', 'false']
+    'd0': ['--dirname', 'false']
   }, process.argv, 2)
 }
 
-Search.prototype.getBasename = function (filename, callback) {
+Query.prototype.basename = function (name, callback) {
   var self = this
-  var basename = path.basename(filename)
+
+  var basename = path.basename(name)
   var option = self.options.hasOwnProperty('basename') ? self.options.basename : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, basename, self.version(), self.author)
+      callback(null, basename, self.version())
     } else {
-      callback(new Error('getBasename is failed'))
+      callback(new Error('basename is failed'))
     }
   }, 2000)
 }
 
-Search.prototype.getExtname = function (filename, callback) {
+Query.prototype.extname = function (name, callback) {
   var self = this
-  var extname = path.extname(filename)
+
+  var extname = path.extname(name)
   var option = self.options.hasOwnProperty('extname') ? self.options.extname : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, extname, self.version(), self.author)
+      callback(null, extname, self.version())
     } else {
-      callback(new Error('getExtname is failed'))
+      callback(new Error('extname is failed'))
     }
   }, 2000)
 }
 
-Search.prototype.getDirname = function (filename, callback) {
+Query.prototype.dirname = function (name, callback) {
   var self = this
-  var dirname = path.dirname(filename)
+
+  var dirname = path.dirname(name)
   var option = self.options.hasOwnProperty('dirname') ? self.options.dirname : true
 
   setTimeout(function () {
     if (option) {
-      callback(null, dirname, self.version(), self.author)
+      callback(null, dirname, self.version())
     } else {
-      callback(new Error('getDirname is failed'))
+      callback(new Error('dirname is failed'))
     }
   }, 2000)
 }
 
-var search = new Search()
+var query = new Query()
 
-var getBasenameAsync = Promise.promisify(search.getBasename, {
-  context: search,
+// promise return an array
+var basenameCustom = Promise.promisify(query.basename, {
+  context: query,
   multiArgs: true
 })
 
-var getExtnameAsync = Promise.promisify(search.getExtname, {
-  context: search,
+// promise return an array
+var extnameCustom = Promise.promisify(query.extname, {
+  context: query,
   multiArgs: true
 })
 
-var getDirnameAsync = Promise.promisify(search.getDirname, {
-  context: search,
-  multiArgs: true
+// promise return a value
+var dirnameCustom = Promise.promisify(query.dirname, {
+  context: query
 })
 
-getBasenameAsync(__filename)
-  .timeout(1000, 'Timeout 1000ms')
+/*
+ *.timeout(int ms, [String message] or [Error error]) -> Promise
+ * Returns a promise that will be fulfilled with this promise's fulfillment value or rejection reason.
+ * However, if this promise is not fulfilled or rejected within ms milliseconds,
+ * the returned promise is rejected with a TimeoutError or the error as the reason.
+ * */
+
+basenameCustom(__filename)
+  .timeout(1500, 'Timeout 1000ms')
   .then(function (result) {
-    console.log('--------------getBasenameAsync--------------'.green)
-    console.log(result)
-    console.log('--------------------------------------------\n'.green)
+    console.log('\nbasenameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('basename version:').green)
+    console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
+    console.log(('\n' + error).red)
   })
 
-getExtnameAsync(__filename)
+extnameCustom(__filename)
   .timeout(1800, 'Timeout 1800ms')
   .then(function (result) {
-    console.log('--------------getExtnameAsync--------------'.yellow)
-    console.log(result)
-    console.log('-------------------------------------------\n'.yellow)
-  })
-  .catch(Promise.TimeoutError, function (error) {
-    console.log('----------------------------'.red)
-    console.log('Catch the Promise.TimeoutError')
-    console.log(error)
-    console.log('----------------------------\n'.red)
+    console.log('\nextnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('extname version:').green)
+    console.log(JSON.stringify(result, null, 2))
+  }, function (error) {
+    console.log(('\n' + error).red)
   })
 
-getDirnameAsync(__filename)
+dirnameCustom(__filename)
   .timeout(3000, 'Timeout 3000ms')
   .then(function (result) {
-    console.log('--------------getDirnameAsync--------------'.white)
-    console.log(result)
-    console.log('-------------------------------------------\n'.white)
+    console.log('\ndirnameCustom:'.green)
+    console.log('is Array?', result instanceof Array)
+
+    console.log(('dirname version:').green)
+    console.log(JSON.stringify(result, null, 2))
   }, function (error) {
-    console.log('----------------------------'.red)
-    console.log(error)
-    console.log('----------------------------\n'.red)
+    console.log(('\n' + error).red)
   })
